@@ -37,6 +37,8 @@ async def now_playing(
     """Returns the currently playing track"""
     data = await get_now_playing(access_token)
     item=data.get("item",{}) 
+    if not item:
+        return {"status": "No track currently playing"}
     return {"name":item["name"],"artists":item["artists"],"uri":item["uri"]}
 
 
