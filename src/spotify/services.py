@@ -21,13 +21,6 @@ async def get_now_playing(access_token: str) -> dict:
         raise HTTPException(status_code=resp.status_code, detail=resp.json())
     return resp.json() if resp.status_code == 200 else {}
 
-async def pause_playback(access_token: str) -> None:
-    url = f"{BASE}/me/player/pause"
-    headers = {"Authorization": f"Bearer {access_token}"}
-    async with httpx.AsyncClient() as client:
-        resp = await client.put(url, headers=headers)
-    if resp.status_code != 204:
-        raise HTTPException(status_code=resp.status_code, detail=resp.json())
 
 async def start_playback(access_token: str, track_uri: str) -> None:
     url = f"{BASE}/me/player/play"
