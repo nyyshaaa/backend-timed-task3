@@ -5,6 +5,9 @@ class Settings(BaseSettings):
     SPOTIPY_CLIENT_SECRET: str
     SPOTIPY_REDIRECT_URI: str
     SPOTIPY_SCOPE: str 
+    ACCESS_TOKEN: str
+    REFRESH_TOKEN: str
+    CODE: str
 
     class Config:
         env_file = ".env"

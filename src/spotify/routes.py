@@ -16,7 +16,19 @@ async def top_tracks(
 ):
     """Returns your top 10 tracks"""
     data = await get_top_tracks(access_token)
-    return {"top_tracks": data.get("items", [])}
+    items = data.get("items", [])
+
+
+    return [
+        {
+            "name":    track["name"],
+            "artists": [artist["name"] for artist in track["artists"]],
+            "album":   track["album"]["name"],
+            "uri":     track["uri"],
+            "url":     track["external_urls"]["spotify"]
+        }
+        for track in items
+    ]
 
 @spotify_router.get("/now_playing")
 async def now_playing(
@@ -24,15 +36,25 @@ async def now_playing(
 ):
     """Returns the currently playing track"""
     data = await get_now_playing(access_token)
-    return {"now_playing": data}
+    item=data.get("item",{}) 
+    return {"name":item["name"],"artists":item["artists"],"uri":item["uri"]}
 
 
-@spotify_router.post("/play/{track_id}")
+@spotify_router.put("/play/{track_id}")
 async def play_track(
     track_id: str,
     access_token: str = Depends(spotify_token_dependency)
 ):
     """Starts playing a specific track from your top list"""
+    top = await get_top_tracks(access_token, limit=10)
+    valid_uris = {t["uri"] for t in top["items"]}
+
     uri = f"spotify:track:{track_id}"
+    if uri not in valid_uris:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Track {track_id} is not in your Top 10."
+        )
+    
     await start_playback(access_token, uri)
     return {"status": "playing", "track_id": track_id}
