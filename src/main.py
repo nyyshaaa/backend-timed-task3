@@ -1,9 +1,9 @@
 from fastapi import FastAPI
-from src.spotify.routes import router as spotify_router
+from src.spotify.routes import spotify_auth_router
 
 app = FastAPI()
 
-app.include_router(spotify_router, prefix="/auth/spotify")
+app.include_router(spotify_auth_router, prefix="/auth/spotify")
 
 @app.get("/")
 def read_root():
