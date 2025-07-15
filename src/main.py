@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from src.spotify.auth import spotify_auth_router
+from src.auth.routes import spotify_auth_router
 from src.spotify.routes import spotify_router
 
 app = FastAPI()

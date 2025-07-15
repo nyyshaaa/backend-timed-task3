@@ -146,4 +146,3 @@
 # 3BsTZdumXj13kA6evuDybG
 # I'll Be Fine
 # INFO:     127.0.0.1:53588 - "PUT /spotify/top_tracks/play/2 HTTP/1.1" 403 Forbidden
-# INFO:     127.0.0.1:56512 - "GET /spotify/top_tracks HTTP/1.1" 200 OK

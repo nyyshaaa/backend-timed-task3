@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Path
 spotify_router= APIRouter()
 
 from fastapi import APIRouter, Depends
-from src.spotify.dependencies import spotify_token_dependency
+from src.auth.dependencies import spotify_token_dependency
 from src.spotify.services import (
     get_top_tracks, get_now_playing, start_playback
 )
