@@ -6,16 +6,17 @@ spotify_router= APIRouter()
 from fastapi import APIRouter, Depends
 from src.auth.dependencies import spotify_token_dependency
 from src.spotify.services import (
-    get_top_tracks, get_now_playing, start_playback
+    get_top_tracks, get_now_playing, pause_playback, start_playback
 )
 
 
 @spotify_router.get("/top_tracks")
 async def top_tracks(
+    limit: int = 10,
     access_token: str = Depends(spotify_token_dependency)
 ):
-    """Returns your top 10 tracks"""
-    data = await get_top_tracks(access_token)
+    """Returns your top tracks"""
+    data = await get_top_tracks(access_token, limit=limit)
     items = data.get("items", [])
 
     if not items:
@@ -82,3 +83,11 @@ async def play_track(
         "name": track["name"],
         "artists": track["artists"],
     }
+
+@spotify_router.put("/pause")
+async def pause(
+    access_token: str = Depends(spotify_token_dependency)
+):
+    """Pauses the currently playing track"""
+    await pause_playback(access_token)
+    return {"status": "paused"}
