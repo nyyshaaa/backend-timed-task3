@@ -1,5 +1,5 @@
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Path
 
 spotify_router= APIRouter()
 
@@ -18,17 +18,21 @@ async def top_tracks(
     data = await get_top_tracks(access_token)
     items = data.get("items", [])
 
-
+    if not items:
+        return {"status": "No top tracks found"}
+    
     return [
         {
             "name":    track["name"],
             "artists": [artist["name"] for artist in track["artists"]],
             "album":   track["album"]["name"],
             "uri":     track["uri"],
-            "url":     track["external_urls"]["spotify"]
+            "url":     track["external_urls"]["spotify"],
+            "id":     track["id"]
         }
         for track in items
     ]
+
 
 @spotify_router.get("/now_playing")
 async def now_playing(
@@ -39,24 +43,42 @@ async def now_playing(
     item=data.get("item",{}) 
     if not item:
         return {"status": "No track currently playing"}
-    return {"name":item["name"],"artists":item["artists"],"uri":item["uri"]}
+   
+    return {"name":item["name"],"artists":item["artists"],"uri":item["uri"],"id":item["id"],"url":item["external_urls"]["spotify"]}
 
 
-@spotify_router.put("/play/{track_id}")
+@spotify_router.put("/top_tracks/play/{position}")
 async def play_track(
-    track_id: str,
+    position: int=Path(
+        ...,
+        ge=0,
+        le=9,
+        description="Position of the track in your top 10"
+    ),
     access_token: str = Depends(spotify_token_dependency)
 ):
     """Starts playing a specific track from your top list"""
-    top = await get_top_tracks(access_token, limit=10)
-    valid_uris = {t["uri"] for t in top["items"]}
+    #Get 1 track/song out of top-10 by offset(position)
+    track_by_pos = await get_top_tracks(access_token, limit=1,offset=position)
+    items = track_by_pos.get("items", []) # response will be list of 1 item
+    if not items:
+        raise HTTPException(404, f"No track found at position {position}")
+
+    track = items[0]
+    track_id = track["id"]
+
+    print(track_id)
+    print(track["name"])
 
     uri = f"spotify:track:{track_id}"
-    if uri not in valid_uris:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Track {track_id} is not in your Top 10."
-        )
+
     
     await start_playback(access_token, uri)
-    return {"status": "playing", "track_id": track_id}
+    
+    return {
+        "status": "playing",
+        "position": position,
+        "track_uri": uri,
+        "name": track["name"],
+        "artists": track["artists"],
+    }

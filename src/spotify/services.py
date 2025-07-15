@@ -3,8 +3,8 @@ from fastapi import HTTPException
 
 BASE = "https://api.spotify.com/v1"
 
-async def get_top_tracks(access_token: str, limit: int = 10) -> dict:
-    url = f"{BASE}/me/top/tracks?limit={limit}"
+async def get_top_tracks(access_token: str, limit: int = 10, offset: int = 0) -> dict:
+    url = f"{BASE}/me/top/tracks?limit={limit}&offset={offset}"
     headers = {"Authorization": f"Bearer {access_token}"}
     async with httpx.AsyncClient() as client:
         resp = await client.get(url, headers=headers)
