@@ -1,69 +1,76 @@
 
-from fastapi.responses import RedirectResponse
+from urllib.parse import urlencode
+from fastapi.params import Cookie
+from fastapi.responses import JSONResponse, RedirectResponse
 import httpx
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
+from src.auth.services import access_from_refresh, get_token_identity, get_token_data
 from src.config import settings
+from src.db.dependencies import get_session
+from src.users.repository import create_or_update_user, get_user_token_by_id
+from src.spotify.utils import spotify_request
 
 spotify_auth_router = APIRouter()
 
-async def get_access_token(code: str):
-    async with httpx.AsyncClient() as client:
-        response = await client.post(
-            "https://accounts.spotify.com/api/token",
-            data={
-                "grant_type": "authorization_code",
-                "code": code,
-                "redirect_uri": "http://127.0.0.1:8000/auth/spotify/callback",
-                "client_id": settings.SPOTIPY_CLIENT_ID,
-                "client_secret": settings.SPOTIPY_CLIENT_SECRET,
-            },
-            headers={"Content-Type": "application/x-www-form-urlencoded"},
-        )
-    if response.status_code != 200:
-        raise HTTPException(status_code=response.status_code, detail=response.json())
-    return response.json()
-
-
-
-
 @spotify_auth_router.get("/login")
 async def login():
-    print(f"DEBUG: SPOTIPY_REDIRECT_URI from settings: {settings.SPOTIPY_REDIRECT_URI}")
-    auth_url = (
-        f"https://accounts.spotify.com/authorize?"
-        f"client_id={settings.SPOTIPY_CLIENT_ID}&"
-        f"response_type=code&"
-        f"redirect_uri=http://127.0.0.1:8000/auth/spotify/callback&"
-        f"scope={settings.SPOTIPY_SCOPE}"
-    )
-    print(f"DEBUG: Spotify Authorization URL: {auth_url}")
+    params = {
+        "client_id":     settings.SPOTIPY_CLIENT_ID,
+        "response_type": "code",
+        "redirect_uri":  "http://127.0.0.1:8000/api/auth/callback",
+        "scope":         settings.SPOTIPY_SCOPE,
+    }
+    auth_url = "https://accounts.spotify.com/authorize?" + urlencode(params)
     return RedirectResponse(auth_url)
 
 @spotify_auth_router.get("/callback")
-async def callback(code: str = Query(...)):
+async def callback(code: str = Query(...),session = Depends(get_session)):
     """
     Spotify will redirect here with ?code=<authorization_code>.
     We exchange that code for access_token + refresh_token.
     """
-    try:
-        # get_access_token should POST to /api/token with grant_type=authorization_code
-        token_data = await get_access_token(
-            code=code
-        )
-    except HTTPException as e:
-        # bubble up any HTTP errors from Spotify
-        raise e
+    # get_token_data should POST to /api/token with grant_type=authorization_code
+    token_data = await get_token_data(code=code)
 
-    # token_data must include: access_token, refresh_token, expires_in, scope, token_type
-    return {
-        "access_token": token_data["access_token"],
-        "refresh_token": token_data["refresh_token"],
-        "expires_in": token_data.get("expires_in"),
-        "scope": token_data.get("scope"),
-        "token_type": token_data.get("token_type"),
-    }
+    access_token=token_data["access_token"]
+    refresh_token= token_data["refresh_token"]
 
+    # 2) Fetch user profile 
+    profile= await get_token_identity(access_token)
+    spotify_id = profile["id"]
+    spotify_email = profile.get("email")
 
+    # 3) Store refresh_token
+    await create_or_update_user(
+        session, spotify_id, spotify_email, refresh_token
+    )
 
+    response= JSONResponse(content={"message": "Spotify connected", "spotify_id": spotify_id,"access_token": access_token})
+    response.set_cookie(
+        key="spotify_id",
+        value=spotify_id,
+        httponly=True,       # inaccessible to JS
+        secure=True,         # only over HTTPS in production
+        samesite="lax",      # prevent CSRF in most cases
+        max_age=60*60*6*1  # e.g. 6 hours
+    )
+    return response
+ 
+
+@spotify_auth_router.get("/refresh")
+async def refresh_token(
+    spotify_id: str = Cookie(..., description="Set by /api/auth/callback"),
+    session = Depends(get_session)):
+    """
+    Endpoint to refresh the Spotify access token using the stored refresh_token.
+    """
+    user_token = await get_user_token_by_id(session, spotify_id)
+    if not user_token:
+        raise HTTPException(status_code=401, detail="Spotify user not registered.")
+
+    data = await access_from_refresh(user_token)
+    
+    return {"access_token": data["access_token"], "expires_in": data.get("expires_in")}
+    
 
 

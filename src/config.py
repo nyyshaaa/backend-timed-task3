@@ -8,6 +8,8 @@ class Settings(BaseSettings):
     ACCESS_TOKEN: str
     REFRESH_TOKEN: str
     CODE: str
+    DATABASE_URL: str
+    SYNC_DATABASE_URL: str
 
     class Config:
         env_file = ".env"

@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Path
 spotify_router= APIRouter()
 
 from fastapi import APIRouter, Depends
-from src.auth.dependencies import spotify_token_dependency
+from src.auth.dependencies import spotify_access_token
 from src.spotify.services import (
     get_top_tracks, get_now_playing, pause_playback, start_playback
 )
@@ -13,7 +13,7 @@ from src.spotify.services import (
 @spotify_router.get("/top_tracks")
 async def top_tracks(
     limit: int = 10,
-    access_token: str = Depends(spotify_token_dependency)
+    access_token: str = Depends(spotify_access_token)
 ):
     """Returns your top tracks"""
     data = await get_top_tracks(access_token, limit=limit)
@@ -37,7 +37,7 @@ async def top_tracks(
 
 @spotify_router.get("/now_playing")
 async def now_playing(
-    access_token: str = Depends(spotify_token_dependency)
+    access_token: str = Depends(spotify_access_token)
 ):
     """Returns the currently playing track"""
     data = await get_now_playing(access_token)
@@ -56,7 +56,7 @@ async def play_track(
         le=9,
         description="Position of the track in your top 10"
     ),
-    access_token: str = Depends(spotify_token_dependency)
+    access_token: str = Depends(spotify_access_token)
 ):
     """Starts playing a specific track from your top list"""
     #Get 1 track/song out of top-10 by offset(position)
@@ -86,7 +86,7 @@ async def play_track(
 
 @spotify_router.put("/pause")
 async def pause(
-    access_token: str = Depends(spotify_token_dependency)
+    access_token: str = Depends(spotify_access_token)
 ):
     """Pauses the currently playing track"""
     await pause_playback(access_token)
