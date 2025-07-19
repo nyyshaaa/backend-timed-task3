@@ -1,0 +1,22 @@
+------ JWT + Spotify OAuth
+
+OAuth Login Begins (User clicks "Login with Spotify")
+
+1) User requests Spotify to get access to resources(requested via scope) 
+Spotify asks you want this app to allow access for requested resources.
+Approve it or reject it .
+https://accounts.spotify.com/authorize?...&redirect_uri=your_backend/callback
+
+
+2) Your Backend Receives the Code at /callback
+Receive the code if approved . Use it to call POST https://accounts.spotify.com/api/token and get tokens in exchange .
+Get user profile data via access token . Now the user is identified.
+Store the user info (id,email) mapped with refresh token in DB, if user already registered update refresh token.
+So that once access token expires we can make a request to refresh endpoint via refresh token to get new access tokens.
+Also add the spotify id (user id ) in request Cookie for a set duration to retrieve refresh tokens from db .
+
+3) Refresh Endpoint to make requests to server 
+Retrieve refresh token via user's spotify id .
+Request to POST https://accounts.spotify.com/api/token to get access tokens 
+
+

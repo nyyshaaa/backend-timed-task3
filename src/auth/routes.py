@@ -28,12 +28,17 @@ async def callback(code: str = Query(...),session = Depends(get_session)):
     """
     Spotify will redirect here with ?code=<authorization_code>.
     We exchange that code for access_token + refresh_token.
+      1) Exchange code → access_token + refresh_token
+      2) Fetch /v1/me to get the Spotify user’s stable ID
+      3) Store refresh_token in our DB under that Spotify ID and keep it server side only and don't return it to client.
+      4) Return a response with the access_token and set a cookie with the spotify_id.
     """
     # get_token_data should POST to /api/token with grant_type=authorization_code
     token_data = await get_token_data(code=code)
 
     access_token=token_data["access_token"]
     refresh_token= token_data["refresh_token"]
+    expires_in = token_data.get("expires_in")
 
     # 2) Fetch user profile 
     profile= await get_token_identity(access_token)
