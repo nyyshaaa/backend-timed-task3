@@ -1,4 +1,4 @@
------- JWT + Spotify OAuth
+------ JWT + Spotify OAuth 
 
 OAuth Login Begins (User clicks "Login with Spotify")
 

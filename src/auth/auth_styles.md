@@ -5,7 +5,6 @@ A comparison of two production‑grade approaches for integrating Spotify OAuth 
 1. **Social‑Login‑Only** (Spotify access token as your sole auth)
 2. **JWT/Session + Spotify OAuth** (your own JWT or session on top of Spotify tokens)
 
-Each method is paired with an easy biological analogy.
 
 ---
 
