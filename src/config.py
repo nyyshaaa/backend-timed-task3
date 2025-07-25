@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     CODE: str
     DATABASE_URL: str
     SYNC_DATABASE_URL: str
+    ALEMBIC_SYNC_URL:str
 
     class Config:
         env_file = ".env"
